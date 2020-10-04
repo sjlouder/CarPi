@@ -1,37 +1,141 @@
-## Welcome to GitHub Pages
+# CarPi: Car computer Project
+The goal of this project is to create a computer that interacts with my car and provides automation, information, diagnostics, and other technological niceties.
+- Reverse camera
+	- Automatic display when in reverse
+	- Recording reverse camera feed
+- Android Auto
+	- OpenAutoPro
+	- OK Google voice commands
+	- Maps & Directions
+	- Integration with car audio
+- Car radio control
+	- Bluetooth commands/connection
+	- Play music library from computer
+- Other cameras
+	- front internal
+	- blindspots
+	- recording of feeds
+	- syncronize/download dashcam data
+- LTE connectivity
+	- Remotely update scripts
+	- (Private/secure) location tracking/querying
+- Automation/Controls
+	- Window control
+	- AC control
+	- Headlights (light sensor)
+- Rear sensors
+	- Integrate sensors with computer
+- Replace/augment dashboard
+- Odometer tracking
+	- Oil changes
+	- trip lengths
+	- gas mileage
 
-You can use the [editor on GitHub](https://github.com/sjlouder/CarPi/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+This page is a journal of the design and installation process.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+# Hardware
+- Raspberry Pi 4B+
+- EasyCap 4
+	- 4 video inputs, 1 audio input
+	- Many options on eBay (~$9)
+	- Mine identified as Somagic clone
+	- This can be risky, 
+- Reverse Camera
+	- Generic CMOS analog camera on Amazon
+	- These are pretty cheap (~$10-50), any with a yellow rca cable should work
+- GPS
+	- I chose this one: https://smile.amazon.com/gp/product/B073P3Y48Q
+	- Check reviews for raspberry pi compatibility
 
-### Markdown
+# Software
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Powershell
+This is my preferred shell  
+https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?view=powershell-7#raspbian
 
-```markdown
-Syntax highlighted code block
+## Somagic
 
-# Header 1
-## Header 2
-### Header 3
+https://code.google.com/archive/p/easycap-somagic-linux/wikis/GettingStarted.wiki  
 
-- Bulleted
-- List
+https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap_1.1.tar.gz  
 
-1. Numbered
-2. List
+https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap-tools_1.1.tar.gz  
 
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+### somagic-capture source package
+Install build and usage dependencies: make, gcc, libusb-1.0-0 (and development headers), libgcrypt11 (and development headers), mplayer (optional), lsusb (optional).
+```bash
+sudo apt-get install make gcc libusb libgcrypt11 mplayer lsusb
+wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap_1.1.tar.gz
+tar xvf somagic-easycap_VERSION.tar.gz
+cd somagic-easycap-tools_1.1
+make
+sudo make install
 ```
+See the README file for additional instructions.
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
 
-### Jekyll Themes
+### somagic-capture-tools source package
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/sjlouder/CarPi/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+```bash
+sudo apt-get install make gcc libusb libgcrypt11 mplayer lsusb
+wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap_1.1.tar.gz
+tar xvf somagic-easycap_VERSION.tar.gz
+cd somagic-easycap-tools_1.1
+make
+sudo make install
+```
+Compile kernel module to get /dev/videoX device(s): https://github.com/pimartos/easycap-somagic-linux/issues/30
 
-### Support or Contact
+## USB2CAN
+https://github.com/krumboeck/usb2can  
+https://www.8devices.com/wiki/usb2can:compile-raspberry  
+https://www.8devices.com/media/products/usb2can_korlan/downloads/Korlan_USB2CAN_User_Guide.pdf  
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+### Build
+```powershell
+sudo apt-get update
+sudo apt-get install git raspberrypi-kernel raspberrypi-kernel-headers can-utils
+git clone https://github.com/krumboeck/usb2can.git
+cd usb2can
+sudo make && sudo make install
+
+# Install may fail with “Warning: modules_install: missing 'System.map' file. Skipping depmod”. See https://raspberrypi.stackexchange.com/questions/761/how-do-i-load-a-module-at-boot-time, but the DKMS should supercede this
+sudo reboot
+
+# Runtime loading of modules:
+cd ~/usb2can
+modprobe can_raw
+modprobe can_dev
+insmod usb_8dev.ko
+
+#To remove:
+rmmod usb_8dev
+
+# Automatic: add can, can_raw, and can_dev to /etc/modules
+
+#DKMS (auto rebuild of module on kernel updates):
+git archive --prefix=usb2can-1.0/ -o /usr/src/usb2can-1.0.tar HEAD
+cd /usr/src
+tar -xvf usb2can-10.tar
+dkms add -m usb2can -v 1.0 --verbose
+
+# Build the module, e.g.
+dkms build -m usb2can -v 1.0 --verbose
+# Install the module, e.g.
+dkms install -m usb2can -v 1.0 --verbose
+
+# Control interface (startup script):
+ip link set can0 up type can bitrate 500000 sample-point 0.875
+ip link set can0 down
+```
+USB2CAN has 3 LEDs: INFO, STAT, and PWR. When interface is connected and up, INFO and PWR are lit. Otherwise, STAT and PWR are lit. INFO flashes on initial connection.
+
+# Ideas
+- Auotmatic check engine light info popup
+- Basic OBD2 commands (look at python-obd)
+- https://python-obd.readthedocs.io/en/latest/Command%20Tables/
+	- Atz -reset
+    - Atl1 -enable line feeds
+    - Ath1 - enable display headers (may not want; prepends headers to return values)
+    - Atsp0 - automatic detection of protocol
+
