@@ -1,0 +1,12 @@
+[Unit]
+Description=Start EasyCAP device
+
+[Service]
+Type=oneshot
+ExecStart=sh -c "somagic-capture --test-only || somagic-init"
+WorkingDirectory=/home/pi
+StandardOutput=inherit
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

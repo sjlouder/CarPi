@@ -1,0 +1,14 @@
+[Unit]
+Description=Start CAN interface
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=ip link add type vcan
+ExecStartPost=ip link set vcan0 up type can
+WorkingDirectory=/home/pi
+StandardOutput=inherit
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

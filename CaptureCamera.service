@@ -1,0 +1,14 @@
+[Unit]
+Description=Start EasyCAP Capture
+Requires=startEasyCAP.service
+After=startEasyCAP.service
+
+[Service]
+Type=simple
+ExecStart=sh -c "somagic-capture -n -i 1 > /home/pi/ReverseCam"
+WorkingDirectory=/home/pi
+StandardOutput=inherit
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+[Unit]
+Description=Monitor CAN interface
+Requires=startCAN.service
+After=startCAN.service
+#Requires=startTestCAN.service
+#After=startTestCAN.service
+
+[Service]
+Type=simple
+Environment="DISPLAY=:0"
+ExecStart=/home/pi/powershell/pwsh -NoLogo -ExecutionPolicy Bypass -File /home/pi/CAN.ps1 -Verbose
+WorkingDirectory=/home/pi
+StandardOutput=inherit
+StandardError=inherit
+Restart=on-failure
+User=1000
+Group=1000
+
+[Install]
+WantedBy=multi-user.target

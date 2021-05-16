@@ -1,0 +1,13 @@
+[Unit]
+Description=Start CAN interface
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=sh -c "ip link show can0 || ip link set can0 up type can bitrate 1000000 sample-point 0.875"
+WorkingDirectory=/home/pi
+StandardOutput=inherit
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target
