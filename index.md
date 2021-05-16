@@ -182,7 +182,7 @@ cansend vcan0 421#080000
 
 ```Powershell
 # TODO: add filters to candump for performance
-candump vcan0 -L | ForEach {
+candump -L vcan0,421 | ForEach {
 	#$Parts = $_ -split '\s+'
 	#$Length = [Int] $Parts[3][1]	# Length value maxes out at 8
 	#$ID = $Parts[2]
@@ -202,7 +202,6 @@ candump vcan0 -L | ForEach {
 		}
 	}
 
-
 	"{0}: ID: {1} Data: {2}" -f (Get-Date), $Output.ID, $Output.Payload
 }
 ```
@@ -216,4 +215,18 @@ candump vcan0 -L | ForEach {
     - Atl1 -enable line feeds
     - Ath1 - enable display headers (may not want; prepends headers to return values)
     - Atsp0 - automatic detection of protocol
-
+- Codes of interest
+	- Trunk release
+	- Windows up/down
+	- Door locks
+	- Wipers	
+	- Mirror adjustment
+	- Odometer/distance traveled
+	- Turning lights
+	- Light monitoring (burnt out bulb)
+- Blind spot indicator
+- Automations
+	- Lower side mirrors when in reverse
+	- Display tire pressures
+	- Oil change notification (based on mileage)
+	
