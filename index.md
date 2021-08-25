@@ -46,10 +46,15 @@ This page is a journal of the design and installation process.
 	- Generic CMOS analog camera on Amazon
 	- These are pretty cheap (~$10-50), any with a yellow rca cable should work
 - EasyCap 4
+	- NOTE: Unfortunately I was not able to get this working reliably. I switched to a capture device with a single video input that was plug and play
 	- 4 video inputs, 1 audio input
 	- Many options on eBay (~$9)
 	- Mine identified as Somagic clone
 	- The model you get may not match mine, but there are multiple variations with various levels of support in Linux.
+- SVideo-to-USB adapter
+	- There are many, that are fairly cheap ($8-20)
+	- Look for one with stated Linux support, or UVC (USB Video class) as that is natively supported by the kernel
+	- Check reviews where possible to see what others' experiences were
 - USB2CAN
 	- This enables us to communicate with the car
 	- There are various options, including ELM327 USB and bluetooth adapters, but they are generally too slow for realtime automobile CAN communications.
@@ -69,35 +74,44 @@ https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powersh
 
 ## Somagic
 
+NOTE: I was able to install the driver and get the automation working, however calling the display command multiple times would lead to a glitchy picture or no picture at all. I wasn't able to figure out why, and decided to purchase a UVC adapter that was plug and play. This documentation remains in the hopes it helps someone else.
+
 https://code.google.com/archive/p/easycap-somagic-linux/wikis/GettingStarted.wiki  
 
 https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap_1.1.tar.gz  
 
 https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap-tools_1.1.tar.gz  
 
+https://ubuntuforums.org/showthread.php?t=1958478
+
 ### somagic-capture Source Package
 This is the driver that communicates with the EasyCap clone. This seems to be specific to Somagic devices, check what the device identifies itself as via `lsusb`
 ```bash
 # Install build and usage dependencies: make, gcc, libusb-1.0-0 (and development headers), libgcrypt11 (and development headers), mplayer (optional), lsusb (optional).
 sudo apt-get install make gcc libusb libgcrypt11 mplayer lsusb
+# sudo dnf install make gcc libusb libusb-devel libgcrypt libgcrypt-devel mplayer
 wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap_1.1.tar.gz
-tar xvf somagic-easycap_VERSION.tar.gz
-cd somagic-easycap-tools_1.1
+tar xvf somagic-easycap_1.1.tar.gz
+cd somagic-easycap_1.1
 make
 sudo make install
+cd ../
 # See the README file for additional instructions.
 ```
 
 ### somagic-capture-tools source package
 These are userland tools to interact with the device
 ```bash
-sudo apt-get install make gcc libusb libgcrypt11 mplayer lsusb
-wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap_1.1.tar.gz
-tar xvf somagic-easycap_VERSION.tar.gz
+wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/easycap-somagic-linux/somagic-easycap-tools_1.1.tar.gz
+tar xvf somagic-easycap_1.1.tar.gz
 cd somagic-easycap-tools_1.1
 make
 sudo make install
+cd ../
 ```
+
+You will also need the firmware file (somagic_firmware.bin). As this is copywrited, there are no links. The getting started page has instructions to extract the firmware, or do a general internet search
+
 
 ### Display image
 ```bash
@@ -105,8 +119,7 @@ sudo make install
 somagic-init
 
 # Display image
-somagic-capture | mplayer -vf yadif,screenshot -demuxer rawvideo -rawvideo 
-"ntsc:format=uyvy:fps=25" -aspect 4:3 -
+sudo somagic-capture -n -i 1 | mplayer -vf yadif,screenshot -demuxer rawvideo -rawvideo "ntsc:format=uyvy:fps=30000/1001" -aspect 4:3 -
 
 # TODO: Capture/save video
 ```
@@ -123,6 +136,7 @@ https://www.8devices.com/wiki/usb2can:compile-raspberry
 https://www.8devices.com/media/products/usb2can_korlan/downloads/Korlan_USB2CAN_User_Guide.pdf  
 
 ### Build
+Driver should already be included in the 3.9+ kernel, but may not be for raspberry pi
 ```powershell
 sudo apt-get update
 sudo apt-get install git raspberrypi-kernel raspberrypi-kernel-headers can-utils

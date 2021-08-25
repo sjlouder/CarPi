@@ -4,7 +4,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=sh -c "ip link show can0 || ip link set can0 up type can bitrate 1000000 sample-point 0.875"
+ExecStart=sh -c "ip link show can0 || (echo 'CAN device not found' && exit 1); ip link set can0 up type can bitrate 1000000 sample-point 0.875"
 WorkingDirectory=/home/pi
 StandardOutput=inherit
 StandardError=inherit

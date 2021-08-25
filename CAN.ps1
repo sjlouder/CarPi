@@ -7,15 +7,11 @@ Param()
 #   https://wiki.linklayer.com/index.php/CAN_Filters
 #   https://manpages.debian.org/testing/can-utils/candump.1.en.html
 candump -L can0,421:7FF | ForEach {
-	$Parts = $_ -split '\s+'
-	#$Length = [Int] $Parts[3][1]	# Length value maxes out at 8
-	#$ID = $Parts[2]
-	#$Data = $Parts[4..($Length + 3)]
-	# For testing
-	Write-Verbose ("{0}: Interface: {1} Data: {2}" -f (Get-Date), $Parts[1], $Parts[2])
-	
+
 	# Sample input: "(2602081823.869841) vcan0 421#080000"
-	$Data = ($_ -split '\s+')[2]
+	$Parts = $_ -split '\s+'
+	$Data = $Parts[2]
+	Write-Verbose ("{0}: Interface: {1} Data: {2}" -f (Get-Date), $Parts[1], $Parts[2])
 	
 	Switch -wildcard ($Data){
 		# cansend can0 421#080000 && sleep 0.5 && systemctl status monitorCAN
@@ -30,23 +26,42 @@ candump -L can0,421:7FF | ForEach {
             # Possible to query current value?
             If(!$ReverseCamera){
                 $ReverseCamera = Start-ThreadJob {
-                    # Write-Output "Before: $Using:InReverse"
-                    Start-Sleep 5
+
+                    Start-Sleep 0.5
                     Write-Verbose "Starting reverse camera display"
-            		$Env:DISPLAY=':0'
+                    $Env:DISPLAY=':0'
+
+                    # Ensure no other instances are running
+                    killall cvlc && killall cvlc
+
+                    # MACROSILICON UVC converter
             		$Param = @{
-            		    FilePath = 'mplayer'
+            		    FilePath = 'cvlc'
             		    ArgumentList = @(
-                		    '-vf yadif,screenshot'
-                		    '-demuxer rawvideo'
-                		    '-rawvideo "ntsc:format=uyvy:fps=30000/1001"'
-                		    '-aspect 16:9'
-                		    '- < /home/pi/ReverseCam'
+                            '--fullscreen'
+                            '--no-video-title-show'
+                            #'v4l2:///dev/video0' # This index is not reliable if multiple cameras installed
+                            'v4l2:///dev/v4l/by-id/usb-MACROSILICON_AV_TO_USB2.0_20150130-video-index0'
             		    )
             		    PassThru = $True
                     }
             		
                     Start-Process @Param
+                    
+                    #Somagic EasyCap 4ch
+                    #killall mplayer && killall mplayer
+                    #$Param = @{
+                    #    FilePath = 'mplayer'
+                    #    ArgumentList = @(
+                    #	    '-vf yadif,screenshot'
+                    #	    '-demuxer rawvideo'
+                    #	    '-rawvideo "ntsc:format=uyvy:fps=30000/1001"'
+                    #	    '-aspect 16:9'
+                    #	    '- < /home/pi/ReverseCam'
+                    #    )
+                    #    PassThru = $True
+                    #}
+                    
                 }
             }
 			
